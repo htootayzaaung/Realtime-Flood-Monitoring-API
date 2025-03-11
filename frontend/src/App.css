@@ -49,6 +49,11 @@
   background-color: #f2f2f2;
 }
 
+.readings-table .current-reading {
+  background-color: #ffe6e6;
+  font-weight: bold;
+}
+
 footer {
   margin-top: 20px;
   padding: 10px;

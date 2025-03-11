@@ -42,12 +42,17 @@ def get_station_readings(station_id, params=None):
     if params is None:
         params = {}
     
-    # Instead of using 'today', calculate a timestamp for 24 hours ago
-    if not params.get('today') and not params.get('since') and not params.get('date'):
-        # Use the 'since' parameter with 24 hours ago timestamp
-        from datetime import datetime, timedelta
-        yesterday = datetime.now() - timedelta(hours=24)
-        params['since'] = yesterday.isoformat()
+    # Calculate exactly 24 hours ago timestamp
+    from datetime import datetime, timedelta
+    yesterday = datetime.now() - timedelta(hours=24)
+    
+    # Use the 'since' parameter instead of 'today'
+    if not params.get('since') and not params.get('today') and not params.get('date'):
+        params['since'] = yesterday.strftime("%Y-%m-%dT%H:%M:%SZ")
+    
+    # Ensure we get enough data points but not too many
+    if not params.get('_limit'):
+        params['_limit'] = 1000  # Ensure we get enough readings
     
     # Always ensure results are sorted by date
     params['_sorted'] = ''
