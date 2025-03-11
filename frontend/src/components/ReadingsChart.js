@@ -52,25 +52,49 @@ ChartJS.register(
             setReadings(sortedReadings);
             
             // Add more detailed debugging here
-            if (sortedReadings.length > 0) {
-              console.log("First reading:", sortedReadings[0]);
-              
-              if (sortedReadings[0].measure) {
-                console.log("Measure object:", JSON.stringify(sortedReadings[0].measure, null, 2));
-                
+            if (sortedReadings.length > 0 && sortedReadings[0].measure) {
                 const measure = sortedReadings[0].measure;
-                console.log("Unit name property:", measure.unitName);
-                console.log("Parameter name properties:", {
-                  parameterName: measure.parameterName,
-                  parameter: measure.parameter
-                });
+                console.log("FULL MEASURE OBJECT:", measure);
                 
-                setUnitName(measure.unitName || 'Value');
-                setParameterName(measure.parameterName || measure.parameter || 'Reading');
-              } else {
-                console.log("No measure object found in the reading");
+                // First try to find the measure URL/ID
+                let measureUrl = measure;
+                
+                // If measure is an object, try to get its ID
+                if (typeof measure === 'object') {
+                  measureUrl = measure['@id'] || measure.id || measure;
+                }
+                
+                // Convert to string in case it's just the URL
+                const measureUrlStr = String(measureUrl);
+                console.log("Measure URL for extraction:", measureUrlStr);
+                
+                // Extract unit from the end of the URL
+                let extractedUnit = 'Value';
+                const unitMatch = measureUrlStr.match(/-([a-zA-Z]+)$/);
+                if (unitMatch && unitMatch[1]) {
+                  extractedUnit = unitMatch[1];
+                  console.log("Extracted unit from URL:", extractedUnit);
+                }
+                
+                // Format it nicely if it's one of the known water level units
+                if (extractedUnit === 'mASD') {
+                  extractedUnit = 'meters Above Station Datum (mASD)';
+                } else if (extractedUnit === 'mAOD') {
+                  extractedUnit = 'meters Above Ordnance Datum (mAOD)';
+                }
+                
+                setUnitName(measure.unitName || extractedUnit);
+                
+                // Also extract the parameter from the URL if possible
+                let extractedParameter = 'Water Level';
+                const paramMatch = measureUrlStr.match(/\/measures\/\d+-([a-zA-Z]+)/);
+                if (paramMatch && paramMatch[1]) {
+                  extractedParameter = paramMatch[1].charAt(0).toUpperCase() + paramMatch[1].slice(1);
+                  console.log("Extracted parameter from URL:", extractedParameter);
+                }
+                
+                setParameterName(measure.parameterName || measure.parameter || extractedParameter);
               }
-            }
           } catch (err) {
             setError('Failed to load readings');
             console.error(err);
