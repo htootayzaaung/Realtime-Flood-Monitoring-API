@@ -286,24 +286,24 @@ const options = {
       
       <h3>Readings Table (30min intervals)</h3>
       <div style={{ overflowX: 'auto' }}>
-        <table className="readings-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>{parameterName}</th>
-              <th>Unit</th>
+      <table className="readings-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>{parameterName} ({unitName})</th>
+            {/* Removed the Unit column */}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredReadings.map((reading, index) => (
+            <tr key={index} className={index === filteredReadings.length - 1 ? 'current-reading' : ''}>
+              <td>{new Date(reading.dateTime).toLocaleString()}</td>
+              <td>{reading.value}</td>
+              {/* Removed the unit cell */}
             </tr>
-          </thead>
-          <tbody>
-            {filteredReadings.map((reading, index) => (
-              <tr key={index} className={index === filteredReadings.length - 1 ? 'current-reading' : ''}>
-                <td>{new Date(reading.dateTime).toLocaleString()}</td>
-                <td>{reading.value}</td>
-                <td>{unitName}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
       </div>
     </div>
   );
