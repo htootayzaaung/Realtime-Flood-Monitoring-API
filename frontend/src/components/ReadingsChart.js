@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,7 +24,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    TimeScale
+    TimeScale,
+    annotationPlugin
   );
 
   const ReadingsChart = ({ stationId }) => {
@@ -92,37 +94,63 @@ ChartJS.register(
     if (error) return <div>Error: {error}</div>;
     if (readings.length === 0) return <div>No readings available for this station</div>;
 
-  // Prepare chart data
-  const chartData = {
-    datasets: [
-      {
-        label: `${parameterName} (${unitName})`,
-        data: readings.map(reading => ({
-          x: new Date(reading.dateTime),
-          y: reading.value
-        })),
-        fill: false,
-        backgroundColor: 'rgb(75, 192, 192)',
-        borderColor: 'rgba(75, 192, 192, 0.8)',
-        tension: 0.1,
-        pointRadius: 3,
-      },
-    ],
-  };
-
-  // Highlight the most recent reading
-  if (readings.length > 0) {
-    const lastIndex = readings.length - 1;
-    chartData.datasets[0].pointBackgroundColor = readings.map((_, index) => 
-      index === lastIndex ? 'red' : 'rgb(75, 192, 192)'
-    );
-    chartData.datasets[0].pointRadius = readings.map((_, index) => 
-      index === lastIndex ? 5 : 3
-    );
-  }
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const yesterdayReadings = readings.filter(r => new Date(r.dateTime) < todayStart);
+    const todayReadings = readings.filter(r => new Date(r.dateTime) >= todayStart);
+    
+    // Then replace your existing chartData definition with this:
+    const chartData = {
+      datasets: [
+        {
+          label: `Yesterday's ${parameterName} (${unitName})`,
+          data: yesterdayReadings.map(reading => ({
+            x: new Date(reading.dateTime),
+            y: reading.value
+          })),
+          fill: false,
+          backgroundColor: 'rgb(153, 204, 255)', // Lighter blue for yesterday
+          borderColor: 'rgba(153, 204, 255, 0.8)',
+          tension: 0.1,
+          pointRadius: 3,
+        },
+        {
+          label: `Today's ${parameterName} (${unitName})`,
+          data: todayReadings.map(reading => ({
+            x: new Date(reading.dateTime),
+            y: reading.value
+          })),
+          fill: false,
+          backgroundColor: 'rgb(75, 192, 192)', // Current blue for today
+          borderColor: 'rgba(75, 192, 192, 0.8)',
+          tension: 0.1,
+          pointRadius: 3,
+        }
+      ],
+    };
+    
+    // You'll need to modify your "highlight the most recent reading" code as well:
+    if (readings.length > 0) {
+      const lastReading = readings[readings.length - 1];
+      // Determine which dataset the most recent reading belongs to
+      const datasetIndex = new Date(lastReading.dateTime) >= todayStart ? 1 : 0;
+      const dataIndex = datasetIndex === 1 
+        ? todayReadings.length - 1 
+        : yesterdayReadings.length - 1;
+      
+      chartData.datasets[datasetIndex].pointBackgroundColor = 
+        chartData.datasets[datasetIndex].data.map((_, index) => 
+          index === dataIndex ? 'red' : chartData.datasets[datasetIndex].backgroundColor
+        );
+      
+      chartData.datasets[datasetIndex].pointRadius = 
+        chartData.datasets[datasetIndex].data.map((_, index) => 
+          index === dataIndex ? 5 : 3
+        );
+    }
 
   // Chart options
-  const options = {
+  // Chart options
+const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -131,7 +159,12 @@ ChartJS.register(
       },
       title: {
         display: true,
-        text: '24 Hour Readings'
+        text: ['24 Hour Readings', readings.length > 0 ? 
+          `From ${new Date(readings[0]?.dateTime).toLocaleDateString()} to ${new Date(readings[readings.length-1]?.dateTime).toLocaleDateString()}` : 
+          ''],
+        font: {
+          size: 16
+        }
       },
       tooltip: {
         callbacks: {
@@ -145,29 +178,47 @@ ChartJS.register(
             return isLastPoint ? `${label} (Most Recent)` : label;
           }
         }
+      },
+      // The annotation property should be inside the plugins object
+      annotation: {
+        annotations: {
+          midnight: {
+            type: 'line',
+            xMin: new Date().setHours(0, 0, 0, 0),
+            xMax: new Date().setHours(0, 0, 0, 0),
+            borderColor: 'rgba(255, 0, 0, 0.5)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              content: 'Midnight',
+              enabled: true,
+              position: 'top'
+            }
+          }
+        }
       }
     },
     scales: {
-        x: {
-          type: 'time',
-          time: {
-            unit: 'hour',  // Changed from minute to hour for clearer labeling
-            stepSize: 3,    // Show a label every 3 hours
-            displayFormats: {
-              hour: 'HH:mm'
-            }
-          },
-          title: {
-            display: true,
-            text: 'Time'
+      x: {
+        type: 'time',
+        time: {
+          unit: 'hour',
+          stepSize: 3,
+          displayFormats: {
+            hour: 'MMM d, HH:mm' 
           }
         },
-        y: {
-          title: {
-            display: true,
-            text: `${parameterName} (${unitName})`
-            }
+        title: {
+          display: true,
+          text: 'Time'
         }
+      },
+      y: {
+        title: {
+          display: true,
+          text: `${parameterName} (${unitName})`
+        }
+      }
     }
   };
 
