@@ -140,7 +140,9 @@ ChartJS.register(
             return date.toLocaleString();
           },
           label: (context) => {
-            return `${parameterName}: ${context.parsed.y} ${unitName}`;
+            const isLastPoint = context.dataIndex === readings.length - 1;
+            const label = `${parameterName}: ${context.parsed.y} ${unitName}`;
+            return isLastPoint ? `${label} (Most Recent)` : label;
           }
         }
       }
@@ -193,16 +195,17 @@ ChartJS.register(
           <Line data={chartData} options={options} />
         </div>
         <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          right: '20px',
-          backgroundColor: 'rgba(255,255,255,0.7)',
-          padding: '5px',
-          borderRadius: '5px',
-          boxShadow: '0 0 5px rgba(0,0,0,0.2)'
+            position: 'absolute',
+            top: '10px',  // Changed from bottom to top
+            right: '20px',
+            backgroundColor: 'rgba(255,255,255,0.7)',
+            padding: '5px',
+            borderRadius: '5px',
+            boxShadow: '0 0 5px rgba(0,0,0,0.2)',
+            zIndex: 10  // Added z-index to ensure it appears above the chart
         }}>
-          <span style={{ color: 'red', fontWeight: 'bold', marginRight: '5px' }}>●</span>
-          Current Reading
+            <span style={{ color: 'red', fontWeight: 'bold', marginRight: '5px' }}>●</span>
+            Most Recent Reading  {/* Changed text from "Current Reading" */}
         </div>
       </div>
       
