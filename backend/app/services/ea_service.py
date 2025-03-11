@@ -38,11 +38,19 @@ def get_stations(params=None):
 def get_station_readings(station_id, params=None):
     """Get readings for a specific station"""
     base_url = current_app.config['API_BASE_URL']
-    # Ensure we're getting readings for the last 24 hours if not specified
+    
     if params is None:
         params = {}
+    
+    # Instead of using 'today', calculate a timestamp for 24 hours ago
     if not params.get('today') and not params.get('since') and not params.get('date'):
-        params['today'] = ''
+        # Use the 'since' parameter with 24 hours ago timestamp
+        from datetime import datetime, timedelta
+        yesterday = datetime.now() - timedelta(hours=24)
+        params['since'] = yesterday.isoformat()
+    
+    # Always ensure results are sorted by date
+    params['_sorted'] = ''
     
     url = f"{base_url}/id/stations/{station_id}/readings"
     return get_with_cache(url, params)
