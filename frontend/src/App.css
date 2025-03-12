@@ -110,3 +110,53 @@ footer {
   color: #666;
   font-weight: normal;
 }
+
+/* Add these styles to your CSS file */
+.range-button {
+  padding: 8px 15px;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.range-button:hover {
+  background-color: #eaeaea;
+}
+
+.range-button.active {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #3a80d2;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.custom-range-picker {
+  margin-top: 10px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.date-inputs {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.apply-button {
+  padding: 6px 12px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.apply-button:hover {
+  background-color: #3a80d2;
+}

@@ -662,9 +662,6 @@ const ReadingsChart = ({ stationId }) => {
         onCustomRangeChange={handleCustomRangeChange}
       />
       
-      {/* Main title that shows the selected time period */}
-      <h2 className="selected-range-title">{chartTitle}</h2>
-      
       {/* Main chart section with clarified title */}
       <div className="chart-section">
         <div className="chart-header">
