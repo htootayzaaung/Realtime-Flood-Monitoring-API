@@ -48,29 +48,6 @@ const ReadingsChart = ({ stationId }) => {
     end: null
   });
 
-  // Helper function to estimate position percentage
-  const getPositionPercentage = (date, readings) => {
-    if (!readings.length) return 0;
-    
-    const startTime = new Date(readings[0].dateTime).getTime();
-    const endTime = new Date(readings[readings.length - 1].dateTime).getTime();
-    const targetTime = new Date(date).getTime();
-    
-    // Calculate position as percentage
-    return Math.max(0, Math.min(100, ((targetTime - startTime) / (endTime - startTime)) * 100));
-  };
-
-  // Helper function to calculate width percentage for detail range
-  const getDetailRangeWidthPercentage = (range, readings) => {
-    if (!readings.length) return 100;
-    
-    const totalDuration = new Date(readings[readings.length - 1].dateTime).getTime() - 
-                          new Date(readings[0].dateTime).getTime();
-    const rangeDuration = new Date(range.end).getTime() - new Date(range.start).getTime();
-    
-    return Math.max(5, Math.min(100, (rangeDuration / totalDuration) * 100));
-  };
-  
   // Calculate time range based on selected option
   const getTimeRange = () => {
     const now = new Date();
@@ -314,11 +291,6 @@ const ReadingsChart = ({ stationId }) => {
     setSelectedRange('custom');
   };
   
-  // Handle detail view range selection from overview chart
-  const handleDetailRangeChange = (start, end) => {
-    setDetailViewRange({ start, end });
-  };
-
   useEffect(() => {
     if (scrollContainerRef.current && readings.length > 0) {
       scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
@@ -372,23 +344,6 @@ const ReadingsChart = ({ stationId }) => {
     return time >= detailViewRange.start && time <= detailViewRange.end;
   });
   
-  // Prepare data for overview chart (all readings)
-  const overviewChartData = {
-    datasets: [
-      {
-        label: `${parameterName} (${unitName})`,
-        data: readings.map(reading => ({
-          x: new Date(reading.dateTime),
-          y: reading.value
-        })),
-        fill: false,
-        borderColor: 'rgba(75, 192, 192, 0.8)',
-        tension: 0.1,
-        pointRadius: 0, // No points in overview chart for cleaner look
-      }
-    ]
-  };
-
   // Dynamically select dataset labels based on the time range
   let olderLabel, recentLabel;
   switch(selectedRange) {
@@ -536,52 +491,6 @@ const ReadingsChart = ({ stationId }) => {
     return fullUnitName; // Return original if no match
   };
 
-  // Options for overview chart
-  const overviewOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    height: 100, // Small height for the overview
-    plugins: {
-      legend: {
-        display: false, // No legend needed for overview
-      },
-      tooltip: {
-        enabled: false, // No tooltips needed for overview
-      },
-    },
-    scales: {
-      x: {
-        type: 'time',
-        time: {
-          unit: 'day',
-          displayFormats: {
-            day: 'MMM d'
-          }
-        },
-        title: {
-          display: false
-        }
-      },
-      y: {
-        display: true,      // Changed from false to true
-        ticks: {
-          display: true,    // Show tick values
-          maxTicksLimit: 3, // Limit to 3 ticks for compactness
-          font: {
-            size: 9         // Smaller font for the compact view
-          }
-        },
-        title: {
-          display: true,
-          text: getAbbreviatedUnit(unitName),
-          font: {
-            size: 10
-          }
-        }
-      }
-    }
-  };
-
   // Options for detail chart
   const detailOptions = {
     responsive: true,
@@ -637,7 +546,9 @@ const ReadingsChart = ({ stationId }) => {
             borderWidth: 2,
             borderDash: [5, 5],
             label: {
-              content: 'Last 24 Hours',
+              content: selectedRange === '48h' ? 'Last 24 Hours' : 
+                       selectedRange === 'week' ? '2 Days Ago' : 
+                       selectedRange === 'month' ? '7 Days Ago' : 'Threshold',
               enabled: selectedRange !== '24h', // Only show when not in 24h view
               position: 'top'
             }
@@ -765,7 +676,7 @@ const ReadingsChart = ({ stationId }) => {
       {/* Main chart section with clarified title */}
       <div className="chart-section">
         <div className="chart-header">
-          <h3>Detailed 24-Hour View</h3>
+        <h3>Detailed {selectedRange === '24h' ? '24-Hour' : chartTitle} View</h3>
           <span className="date-subtitle">
             From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
           </span>
@@ -809,35 +720,6 @@ const ReadingsChart = ({ stationId }) => {
           </div>
         </div>
       </div>
-      
-      {/* Overview mini-chart - only show for longer time periods */}
-      {selectedRange !== '24h' && (
-        <div className="overview-section">
-          <div className="chart-header">
-            <h3>Full {chartTitle} Overview</h3>
-            <span className="date-subtitle">
-              From {new Date(readings[0]?.dateTime).toLocaleDateString()} to {new Date(readings[readings.length-1]?.dateTime).toLocaleDateString()}
-            </span>
-          </div>
-          
-          <div className="overview-chart" style={{ height: '120px', marginTop: '10px', position: 'relative' }}>
-            {/* Add this highlighted region indicator */}
-            <div 
-              style={{
-                position: 'absolute',
-                left: `${getPositionPercentage(detailViewRange.start, readings)}%`,
-                width: `${getDetailRangeWidthPercentage(detailViewRange, readings)}%`,
-                height: '100%',
-                backgroundColor: 'rgba(75, 192, 192, 0.15)',
-                border: '1px dashed rgba(75, 192, 192, 0.5)',
-                zIndex: 5,
-                pointerEvents: 'none'
-              }}
-            />
-            <Line data={overviewChartData} options={overviewOptions} />
-          </div>
-        </div>
-      )}
       
       <h3>Readings Table (30min intervals)</h3>
       <div style={{ overflowX: 'auto' }}>
