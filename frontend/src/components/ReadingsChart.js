@@ -402,86 +402,72 @@ const ReadingsChart = ({ stationId }) => {
     ]
   };
 
-  // Regular chart data for the main display
-  const chartData = {
-    datasets: [
-      {
-        label: `${olderLabel} (${unitName})`,
-        data: yesterdayReadings.map(reading => ({
-          x: new Date(reading.dateTime),
-          y: reading.value
-        })),
-        fill: false,
-        backgroundColor: 'rgb(153, 204, 255)', // Lighter blue for yesterday
-        borderColor: 'rgba(153, 204, 255, 0.8)',
-        tension: 0.1,
-        pointRadius: 3,
+  // Unified chart data with a single continuous dataset
+  const unifiedChartData = {
+    datasets: [{
+      label: `${parameterName} (${unitName})`,
+      data: readings.map(reading => ({
+        x: new Date(reading.dateTime),
+        y: reading.value
+      })),
+      fill: false,
+      backgroundColor: context => {
+        if (!context.dataIndex && !context.dataset.data[context.dataIndex]) return 'rgb(75, 192, 192)';
+        const value = context.dataset.data[context.dataIndex].x;
+        
+        // Red for the most recent reading
+        if (context.dataIndex === readings.length - 1) {
+          return 'red';
+        }
+        
+        // Otherwise, use color based on the threshold
+        return new Date(value) < thresholdDate ? 
+          'rgb(153, 204, 255)' : 'rgb(75, 192, 192)';
       },
-      {
-        label: `${recentLabel} (${unitName})`,
-        data: todayReadings.map(reading => ({
-          x: new Date(reading.dateTime),
-          y: reading.value
-        })),
-        fill: false,
-        backgroundColor: 'rgb(75, 192, 192)', // Current blue for today
-        borderColor: 'rgba(75, 192, 192, 0.8)',
-        tension: 0.1,
-        pointRadius: 3,
-      }
-    ],
+      borderColor: context => {
+        if (!context.dataIndex && !context.dataset.data[context.dataIndex]) return 'rgba(75, 192, 192, 0.8)';
+        const value = context.dataset.data[context.dataIndex].x;
+        return new Date(value) < thresholdDate ? 
+          'rgba(153, 204, 255, 0.8)' : 'rgba(75, 192, 192, 0.8)';
+      },
+      pointRadius: context => {
+        // Make the most recent reading point larger
+        return context.dataIndex === readings.length - 1 ? 5 : 3;
+      },
+      tension: 0.1
+    }]
   };
-  
-  // Highlight the most recent reading
-  if (readings.length > 0) {
-    const lastReading = readings[readings.length - 1];
-    // Determine which dataset the most recent reading belongs to
-    const datasetIndex = new Date(lastReading.dateTime) >= todayStart ? 1 : 0;
-    const dataIndex = datasetIndex === 1 
-      ? todayReadings.length - 1 
-      : yesterdayReadings.length - 1;
+
+  const lastReading = readings.length > 0 ? readings[readings.length - 1] : null;
+
+  // Also highlight in the detail chart if the most recent reading is in that view
+  if (lastReading && detailViewRange.start && detailViewRange.end && 
+    new Date(lastReading.dateTime) >= detailViewRange.start && 
+    new Date(lastReading.dateTime) <= detailViewRange.end) {
+  const detailDatasetIndex = new Date(lastReading.dateTime) >= thresholdDate ? 1 : 0;
+  const detailData = detailDatasetIndex === 1 ? recentReadings : olderReadings;
+  const filteredDetailData = detailData.filter(r => 
+    new Date(r.dateTime) >= detailViewRange.start && 
+    new Date(r.dateTime) <= detailViewRange.end
+  );
+  const detailDataIndex = filteredDetailData.findIndex(r => r.dateTime === lastReading.dateTime);
+
+  if (detailDataIndex !== -1 && detailChartData.datasets[detailDatasetIndex]) {
+    detailChartData.datasets[detailDatasetIndex].pointBackgroundColor = 
+      Array(filteredDetailData.length).fill(detailChartData.datasets[detailDatasetIndex].backgroundColor);
     
-    if (chartData.datasets[datasetIndex] && chartData.datasets[datasetIndex].data && chartData.datasets[datasetIndex].data.length > 0) {
-      chartData.datasets[datasetIndex].pointBackgroundColor = 
-        chartData.datasets[datasetIndex].data.map((_, index) => 
-          index === dataIndex ? 'red' : chartData.datasets[datasetIndex].backgroundColor
-        );
-      
-      chartData.datasets[datasetIndex].pointRadius = 
-        chartData.datasets[datasetIndex].data.map((_, index) => 
-          index === dataIndex ? 5 : 3
-        );
+    if (detailChartData.datasets[detailDatasetIndex].pointBackgroundColor) {
+      detailChartData.datasets[detailDatasetIndex].pointBackgroundColor[detailDataIndex] = 'red';
     }
     
-    // Also highlight in the detail chart if the most recent reading is in that view
-    if (new Date(lastReading.dateTime) >= detailViewRange.start && 
-        new Date(lastReading.dateTime) <= detailViewRange.end) {
-      const detailDatasetIndex = new Date(lastReading.dateTime) >= thresholdDate ? 1 : 0;
-      const detailData = detailDatasetIndex === 1 ? recentReadings : olderReadings;
-      const filteredDetailData = detailData.filter(r => 
-        new Date(r.dateTime) >= detailViewRange.start && 
-        new Date(r.dateTime) <= detailViewRange.end
-      );
-      const detailDataIndex = filteredDetailData.findIndex(r => r.dateTime === lastReading.dateTime);
-      
-      if (detailDataIndex !== -1 && detailChartData.datasets[detailDatasetIndex]) {
-        detailChartData.datasets[detailDatasetIndex].pointBackgroundColor = 
-          Array(filteredDetailData.length).fill(detailChartData.datasets[detailDatasetIndex].backgroundColor);
-        
-        if (detailChartData.datasets[detailDatasetIndex].pointBackgroundColor) {
-          detailChartData.datasets[detailDatasetIndex].pointBackgroundColor[detailDataIndex] = 'red';
-        }
-        
-        detailChartData.datasets[detailDatasetIndex].pointRadius = 
-          Array(filteredDetailData.length).fill(3);
-        
-        if (detailChartData.datasets[detailDatasetIndex].pointRadius) {
-          detailChartData.datasets[detailDatasetIndex].pointRadius[detailDataIndex] = 5;
-        }
-      }
+    detailChartData.datasets[detailDatasetIndex].pointRadius = 
+      Array(filteredDetailData.length).fill(3);
+    
+    if (detailChartData.datasets[detailDatasetIndex].pointRadius) {
+      detailChartData.datasets[detailDatasetIndex].pointRadius[detailDataIndex] = 5;
     }
   }
-
+  }
   // Helper function to get abbreviated unit name
   const getAbbreviatedUnit = (fullUnitName) => {
     if (fullUnitName.includes('Above Station Datum')) return 'mASD';
@@ -665,6 +651,20 @@ const ReadingsChart = ({ stationId }) => {
     return readingDate.getMinutes() % 30 === 0;
   });
 
+  // Helper function to create a gradient for the boundary segment
+  const createGradient = (chart) => {
+    const ctx = chart.ctx;
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400); // vertical gradient
+    
+    // Start with the "older" color
+    gradient.addColorStop(0, 'rgba(153, 204, 255, 0.8)');
+    // End with the "recent" color
+    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.8)');
+    
+    return gradient;
+  };
+
+
   return (
     <div>
       <TimeRangeSelector 
@@ -692,18 +692,40 @@ const ReadingsChart = ({ stationId }) => {
           }}
         >
           <div style={{ minWidth: '1200px', height: '100%' }}>
-            <Line 
-              data={selectedRange === '24h' ? chartData : detailChartData} 
-              options={{
-                ...options,
-                plugins: {
-                  ...options.plugins,
-                  title: {
-                    display: false // Remove the confusing title from the chart itself
-                  }
+          <Line 
+            data={unifiedChartData} 
+            options={{
+              ...options,
+              plugins: {
+                ...options.plugins,
+                title: {
+                  display: false
+                },
+                legend: {
+                  labels: {
+                    generateLabels: () => [
+                      {
+                        text: olderLabel,
+                        fillStyle: 'rgb(153, 204, 255)',
+                        strokeStyle: 'rgba(153, 204, 255, 0.8)',
+                        lineWidth: 1,
+                        hidden: false
+                      }, 
+                      {
+                        text: recentLabel,
+                        fillStyle: 'rgb(75, 192, 192)',
+                        strokeStyle: 'rgba(75, 192, 192, 0.8)',
+                        lineWidth: 1,
+                        hidden: false
+                      }
+                    ],
+                    usePointStyle: true
+                  },
+                  onClick: () => {} // Disable toggling datasets on/off
                 }
-              }} 
-            />
+              }
+            }} 
+          />
           </div>
           <div style={{
             position: 'absolute',
