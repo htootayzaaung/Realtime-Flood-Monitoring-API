@@ -168,11 +168,9 @@ const ReadingsChart = ({ stationId }) => {
         }
         setReadings(processedReadings);
         
-        // Set initial detail view range to include most recent day
-        const totalTimespan = now - since;
-        const detailSpan = Math.min(totalTimespan, 24 * 60 * 60 * 1000); // Show max 24h or whole range
+        // Set detail view range to show the entire selected time period
         setDetailViewRange({
-          start: new Date(now.getTime() - detailSpan),
+          start: since,
           end: now
         });
         
@@ -332,17 +330,41 @@ const ReadingsChart = ({ stationId }) => {
   if (error) return <div>Error: {error}</div>;
   if (readings.length === 0) return <div>No readings available for this station</div>;
 
-  const todayStart = new Date().setHours(0, 0, 0, 0);
-  const yesterdayReadings = readings.filter(r => new Date(r.dateTime) < todayStart);
-  const todayReadings = readings.filter(r => new Date(r.dateTime) >= todayStart);
+  // Dynamically determine the threshold based on selected range
+  let thresholdDate;
+  const now = new Date();
 
-  // Determine the 24-hour threshold (for highlighting recent data)
-  const twentyFourHoursAgo = new Date();
-  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-  
-  // Split readings into before and after 24h threshold for coloring
-  const olderReadings = readings.filter(r => new Date(r.dateTime) < twentyFourHoursAgo);
-  const recentReadings = readings.filter(r => new Date(r.dateTime) >= twentyFourHoursAgo);
+  switch(selectedRange) {
+    case '24h':
+      // For 24h view, split at midnight
+      thresholdDate = new Date().setHours(0, 0, 0, 0);
+      break;
+    case '48h':
+      // For 48h view, split at 24 hours ago
+      thresholdDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case 'week':
+      // For week view, split at 2 days ago
+      thresholdDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      break;
+    case 'month':
+      // For month view, split at 7 days ago
+      thresholdDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      thresholdDate = new Date().setHours(0, 0, 0, 0);
+  }
+
+  // Split readings based on the dynamic threshold
+  const olderReadings = readings.filter(r => new Date(r.dateTime) < thresholdDate);
+  const recentReadings = readings.filter(r => new Date(r.dateTime) >= thresholdDate);
+
+  // Keep these variables for backward compatibility with existing code
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const yesterdayReadings = selectedRange === '24h' ? 
+    readings.filter(r => new Date(r.dateTime) < todayStart) : olderReadings;
+  const todayReadings = selectedRange === '24h' ? 
+    readings.filter(r => new Date(r.dateTime) >= todayStart) : recentReadings;
 
   // Filter readings for the detail view
   const detailReadings = readings.filter(r => {
@@ -367,11 +389,35 @@ const ReadingsChart = ({ stationId }) => {
     ]
   };
 
+  // Dynamically select dataset labels based on the time range
+  let olderLabel, recentLabel;
+  switch(selectedRange) {
+    case '24h':
+      olderLabel = `Yesterday's ${parameterName}`;
+      recentLabel = `Today's ${parameterName}`;
+      break;
+    case '48h':
+      olderLabel = `2 Days Ago ${parameterName}`;
+      recentLabel = `Last 24 Hours ${parameterName}`;
+      break;
+    case 'week':
+      olderLabel = `Earlier This Week ${parameterName}`;
+      recentLabel = `Most Recent Day ${parameterName}`;
+      break;
+    case 'month':
+      olderLabel = `Earlier This Month ${parameterName}`;
+      recentLabel = `Most Recent Week ${parameterName}`;
+      break;
+    default:
+      olderLabel = `Older ${parameterName}`;
+      recentLabel = `Recent ${parameterName}`;
+  }
+
   // Prepare data for detail chart (selected range)
   const detailChartData = {
     datasets: [
       {
-        label: `Older ${parameterName} (${unitName})`,
+        label: `${olderLabel} (${unitName})`,
         data: olderReadings
           .filter(r => new Date(r.dateTime) >= detailViewRange.start && new Date(r.dateTime) <= detailViewRange.end)
           .map(reading => ({
@@ -385,7 +431,7 @@ const ReadingsChart = ({ stationId }) => {
         pointRadius: 3,
       },
       {
-        label: `Recent ${parameterName} (${unitName})`,
+        label: `${recentLabel} (${unitName})`,
         data: recentReadings
           .filter(r => new Date(r.dateTime) >= detailViewRange.start && new Date(r.dateTime) <= detailViewRange.end)
           .map(reading => ({
@@ -405,7 +451,7 @@ const ReadingsChart = ({ stationId }) => {
   const chartData = {
     datasets: [
       {
-        label: `Yesterday's ${parameterName} (${unitName})`,
+        label: `${olderLabel} (${unitName})`,
         data: yesterdayReadings.map(reading => ({
           x: new Date(reading.dateTime),
           y: reading.value
@@ -417,7 +463,7 @@ const ReadingsChart = ({ stationId }) => {
         pointRadius: 3,
       },
       {
-        label: `Today's ${parameterName} (${unitName})`,
+        label: `${recentLabel} (${unitName})`,
         data: todayReadings.map(reading => ({
           x: new Date(reading.dateTime),
           y: reading.value
@@ -455,7 +501,7 @@ const ReadingsChart = ({ stationId }) => {
     // Also highlight in the detail chart if the most recent reading is in that view
     if (new Date(lastReading.dateTime) >= detailViewRange.start && 
         new Date(lastReading.dateTime) <= detailViewRange.end) {
-      const detailDatasetIndex = new Date(lastReading.dateTime) >= twentyFourHoursAgo ? 1 : 0;
+      const detailDatasetIndex = new Date(lastReading.dateTime) >= thresholdDate ? 1 : 0;
       const detailData = detailDatasetIndex === 1 ? recentReadings : olderReadings;
       const filteredDetailData = detailData.filter(r => 
         new Date(r.dateTime) >= detailViewRange.start && 
@@ -585,8 +631,8 @@ const ReadingsChart = ({ stationId }) => {
           },
           twentyFourHourMark: {
             type: 'line',
-            xMin: twentyFourHoursAgo,
-            xMax: twentyFourHoursAgo,
+            xMin: thresholdDate,
+            xMax: thresholdDate,
             borderColor: 'rgba(255, 0, 0, 0.3)',
             borderWidth: 2,
             borderDash: [5, 5],
