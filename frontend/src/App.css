@@ -75,3 +75,38 @@ footer {
     flex: 1;
   }
 }
+
+.selected-range-title {
+  margin-top: 20px;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.chart-section, .overview-section {
+  margin-bottom: 25px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.chart-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.date-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: normal;
+}
