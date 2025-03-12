@@ -203,6 +203,31 @@ const ReadingsChart = ({ stationId }) => {
         parameterName = measureInfo.parameterName || measureInfo.parameter || parameterName;
       }
       
+      // Extract parameter from URL if not found directly
+      if (parameterName === 'Reading') {
+        const measureUrl = typeof measureInfo === 'string' ? 
+          measureInfo : (measureInfo['@id'] || measureInfo.id || measureInfo);
+        
+        const measureUrlStr = String(measureUrl);
+        
+        // Extract parameter from URL
+        let extractedParameter = 'Water Level';
+        const paramMatch = measureUrlStr.match(/\/measures\/\d+-([a-zA-Z]+)/);
+        if (paramMatch && paramMatch[1]) {
+          extractedParameter = paramMatch[1].charAt(0).toUpperCase() + paramMatch[1].slice(1);
+          console.log("Extracted parameter from URL:", extractedParameter);
+          parameterName = extractedParameter;
+        }
+      }
+      
+      // If parameter is 'Flow', use the correct unit even if not specified
+      if (parameterName === 'Flow') {
+        parameterName = 'Flow rate'; // Change "Flow" to "Flow rate"
+        if (unitName === 'Value') {
+          unitName = 'm³/s';  // Set the correct unit without parentheses
+        }
+      }
+      
       // If still using default, try to extract from URL
       if (unitName === 'Value') {
         // Get the measure URL string
@@ -228,23 +253,6 @@ const ReadingsChart = ({ stationId }) => {
           };
           
           unitName = unitMap[extractedCode] || extractedCode;
-        }
-      }
-      
-      // If parameterName is still the default, try to extract from URL
-      if (parameterName === 'Reading') {
-        const measureUrl = typeof measureInfo === 'string' ? 
-          measureInfo : (measureInfo['@id'] || measureInfo.id || measureInfo);
-        
-        const measureUrlStr = String(measureUrl);
-        
-        // Extract parameter from URL
-        let extractedParameter = 'Water Level';
-        const paramMatch = measureUrlStr.match(/\/measures\/\d+-([a-zA-Z]+)/);
-        if (paramMatch && paramMatch[1]) {
-          extractedParameter = paramMatch[1].charAt(0).toUpperCase() + paramMatch[1].slice(1);
-          console.log("Extracted parameter from URL:", extractedParameter);
-          parameterName = extractedParameter;
         }
       }
     }
