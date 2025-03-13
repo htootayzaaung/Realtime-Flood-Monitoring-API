@@ -28,7 +28,6 @@ function App() {
               <div className="station-info">
                 <p><strong>River:</strong> {selectedStation.riverName || 'N/A'}</p>
                 <p><strong>Town:</strong> {selectedStation.town || 'N/A'}</p>
-                <p><strong>Type:</strong> {selectedStation.type || 'N/A'}</p>
               </div>
               <ReadingsChart stationId={selectedStation.stationReference} />
             </div>
