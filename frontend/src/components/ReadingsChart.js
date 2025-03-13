@@ -416,7 +416,7 @@ const ReadingsChart = ({ stationId }) => {
       fill: false,
       // Point colors
       pointBackgroundColor: context => {
-        if (!context.dataIndex || !context.dataset.data[context.dataIndex]) return 'rgb(75, 192, 192)';
+        if (!context.dataIndex || !context.dataset.data[context.dataIndex]) return 'rgb(153, 204, 255)';
         const value = context.dataset.data[context.dataIndex].x;
         
         // Red for the most recent reading
