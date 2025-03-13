@@ -724,17 +724,18 @@ const ReadingsChart = ({ stationId }) => {
       <div className="chart-header">
         <h3>Detailed {selectedRange === '24h' ? '24-Hour' : chartTitle} View</h3>
         <span className="date-subtitle">
-        From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
-        {selectedRange !== '24h' && (
+          From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
           <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#666' }}>
-            (Red line marks division between {
-              selectedRange === '48h' ? 'yesterday and today' : 
-              selectedRange === 'week' ? 'last 6 days and today' : 
-              'last 3 weeks and current week'
-            })
+            {selectedRange === '24h' 
+              ? "(Red line marks midnight)" 
+              : `(Red line marks division between ${
+                  selectedRange === '48h' ? 'yesterday and today' : 
+                  selectedRange === 'week' ? 'last 6 days and today' : 
+                  'last 3 weeks and current week'
+                })`
+            }
           </span>
-        )}
-      </span>
+        </span>
       </div>
         
         <div
