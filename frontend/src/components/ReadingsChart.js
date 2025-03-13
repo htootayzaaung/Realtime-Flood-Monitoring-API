@@ -544,6 +544,7 @@ const ReadingsChart = ({ stationId }) => {
             borderColor: 'rgba(255, 0, 0, 0.5)',
             borderWidth: 2,
             borderDash: [5, 5],
+            display: selectedRange === '24h', // Add this line
             label: {
               content: 'Midnight',
               enabled: selectedRange === '24h',
@@ -554,14 +555,15 @@ const ReadingsChart = ({ stationId }) => {
             type: 'line',
             xMin: thresholdDate,
             xMax: thresholdDate,
-            borderColor: 'rgba(255, 0, 0, 0.7)', // Make it more visible
+            borderColor: 'rgba(255, 0, 0, 0.7)',
             borderWidth: 2,
             borderDash: [5, 5],
+            display: selectedRange !== '24h', // Add this line
             label: {
               content: selectedRange === '48h' ? 'Yesterday/Today' : 
                        selectedRange === 'week' ? 'Last 6 Days/Today' : 
                        selectedRange === 'month' ? 'Last 3 Weeks/Current Week' : 'Threshold',
-              enabled: selectedRange !== '24h', // Show for all views except 24h
+              enabled: true,
               position: 'top'
             }
           }
@@ -626,7 +628,7 @@ const ReadingsChart = ({ stationId }) => {
           }
         }
       },
-      annotations: {
+      annotation: {
         annotations: {
           midnight: {
             type: 'line',
@@ -635,6 +637,7 @@ const ReadingsChart = ({ stationId }) => {
             borderColor: 'rgba(255, 0, 0, 0.5)',
             borderWidth: 2,
             borderDash: [5, 5],
+            display: selectedRange === '24h',
             label: {
               content: 'Midnight',
               enabled: selectedRange === '24h', // Only show for 24h view
@@ -648,6 +651,7 @@ const ReadingsChart = ({ stationId }) => {
             borderColor: 'rgba(255, 0, 0, 0.7)', // Make it more visible
             borderWidth: 2,
             borderDash: [5, 5],
+            display: selectedRange !== '24h',
             label: {
               content: selectedRange === '48h' ? 'Yesterday/Today' : 
                        selectedRange === 'week' ? 'Last 6 Days/Today' : 
@@ -720,17 +724,17 @@ const ReadingsChart = ({ stationId }) => {
       <div className="chart-header">
         <h3>Detailed {selectedRange === '24h' ? '24-Hour' : chartTitle} View</h3>
         <span className="date-subtitle">
-          From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
-          {selectedRange !== '24h' && (
-            <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#666' }}>
-              (Red line marks division between {
-                selectedRange === '48h' ? 'yesterday and today' : 
-                selectedRange === 'week' ? 'last 6 days and today' : 
-                'last 3 weeks and current week'
-              })
-            </span>
-          )}
-        </span>
+        From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
+        {selectedRange !== '24h' && (
+          <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#666' }}>
+            (Red line marks division between {
+              selectedRange === '48h' ? 'yesterday and today' : 
+              selectedRange === 'week' ? 'last 6 days and today' : 
+              'last 3 weeks and current week'
+            })
+          </span>
+        )}
+      </span>
       </div>
         
         <div
@@ -748,7 +752,9 @@ const ReadingsChart = ({ stationId }) => {
             options={{
               ...options,
               plugins: {
-                ...options.plugins,
+                // Keep the annotation configuration explicitly
+                annotation: options.plugins.annotation,
+                // Other plugin settings
                 title: {
                   display: false
                 },
@@ -775,7 +781,7 @@ const ReadingsChart = ({ stationId }) => {
                   onClick: () => {} // Disable toggling datasets on/off
                 }
               }
-            }} 
+            }}
           />
           </div>
           <div style={{
