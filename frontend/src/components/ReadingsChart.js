@@ -312,16 +312,19 @@ const ReadingsChart = ({ stationId }) => {
       thresholdDate = new Date().setHours(0, 0, 0, 0);
       break;
     case '48h':
-      // For 48h view, split at 24 hours ago
+      // For 48h view, split at 24 hours ago (midpoint)
       thresholdDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       break;
     case 'week':
-      // For week view, split at 2 days ago
-      thresholdDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      // For week view, split between last 6 days and today
+      thresholdDate = new Date().setHours(0, 0, 0, 0); // Start of today
       break;
     case 'month':
-      // For month view, split at 7 days ago
-      thresholdDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      // Keep your existing code for month view
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, etc.
+      // Calculate the start of the current week (Sunday)
+      thresholdDate = new Date(today.setDate(today.getDate() - dayOfWeek)).setHours(0, 0, 0, 0);
       break;
     default:
       thresholdDate = new Date().setHours(0, 0, 0, 0);
@@ -352,16 +355,16 @@ const ReadingsChart = ({ stationId }) => {
       recentLabel = `Today's ${parameterName}`;
       break;
     case '48h':
-      olderLabel = `2 Days Ago ${parameterName}`;
-      recentLabel = `Last 24 Hours ${parameterName}`;
+      olderLabel = `Yesterday's ${parameterName}`;
+      recentLabel = `Today's ${parameterName}`;
       break;
     case 'week':
-      olderLabel = `Earlier This Week ${parameterName}`;
-      recentLabel = `Most Recent Day ${parameterName}`;
+      olderLabel = `Last 6 Days ${parameterName}`;
+      recentLabel = `Today's ${parameterName}`;
       break;
     case 'month':
-      olderLabel = `Earlier This Month ${parameterName}`;
-      recentLabel = `Most Recent Week ${parameterName}`;
+      olderLabel = `Last 3 Weeks ${parameterName}`;
+      recentLabel = `Current Week ${parameterName}`;
       break;
     default:
       olderLabel = `Older ${parameterName}`;
@@ -402,7 +405,7 @@ const ReadingsChart = ({ stationId }) => {
     ]
   };
 
-  // Unified chart data with a single continuous dataset
+  // Modified version that keeps your existing color scheme
   const unifiedChartData = {
     datasets: [{
       label: `${parameterName} (${unitName})`,
@@ -411,8 +414,9 @@ const ReadingsChart = ({ stationId }) => {
         y: reading.value
       })),
       fill: false,
-      backgroundColor: context => {
-        if (!context.dataIndex && !context.dataset.data[context.dataIndex]) return 'rgb(75, 192, 192)';
+      // Point colors
+      pointBackgroundColor: context => {
+        if (!context.dataIndex || !context.dataset.data[context.dataIndex]) return 'rgb(75, 192, 192)';
         const value = context.dataset.data[context.dataIndex].x;
         
         // Red for the most recent reading
@@ -424,12 +428,32 @@ const ReadingsChart = ({ stationId }) => {
         return new Date(value) < thresholdDate ? 
           'rgb(153, 204, 255)' : 'rgb(75, 192, 192)';
       },
-      borderColor: context => {
-        if (!context.dataIndex && !context.dataset.data[context.dataIndex]) return 'rgba(75, 192, 192, 0.8)';
-        const value = context.dataset.data[context.dataIndex].x;
-        return new Date(value) < thresholdDate ? 
-          'rgba(153, 204, 255, 0.8)' : 'rgba(75, 192, 192, 0.8)';
+      // Line colors - this is crucial for fixing the issue
+      segment: {
+        borderColor: context => {
+          // If we have no points, return default color
+          if (!context.p0 || !context.p1) return 'rgba(75, 192, 192, 0.8)';
+          
+          // Get dates for the two points of this line segment
+          const p0Date = context.p0.parsed.x;
+          const p1Date = context.p1.parsed.x;
+          
+          // If both points are before the threshold, use blue
+          if (p0Date < thresholdDate && p1Date < thresholdDate) {
+            return 'rgba(153, 204, 255, 0.8)';
+          }
+          
+          // If both points are after the threshold, use green
+          if (p0Date >= thresholdDate && p1Date >= thresholdDate) {
+            return 'rgba(75, 192, 192, 0.8)';
+          }
+          
+          // If the segment crosses the threshold, create a gradient
+          // For simplicity, just use the older color
+          return 'rgba(153, 204, 255, 0.8)';
+        }
       },
+      borderColor: 'rgba(75, 192, 192, 0.8)', // Default fallback
       pointRadius: context => {
         // Make the most recent reading point larger
         return context.dataIndex === readings.length - 1 ? 5 : 3;
@@ -440,34 +464,36 @@ const ReadingsChart = ({ stationId }) => {
 
   const lastReading = readings.length > 0 ? readings[readings.length - 1] : null;
 
+  
   // Also highlight in the detail chart if the most recent reading is in that view
   if (lastReading && detailViewRange.start && detailViewRange.end && 
     new Date(lastReading.dateTime) >= detailViewRange.start && 
     new Date(lastReading.dateTime) <= detailViewRange.end) {
-  const detailDatasetIndex = new Date(lastReading.dateTime) >= thresholdDate ? 1 : 0;
-  const detailData = detailDatasetIndex === 1 ? recentReadings : olderReadings;
-  const filteredDetailData = detailData.filter(r => 
-    new Date(r.dateTime) >= detailViewRange.start && 
-    new Date(r.dateTime) <= detailViewRange.end
-  );
-  const detailDataIndex = filteredDetailData.findIndex(r => r.dateTime === lastReading.dateTime);
+    const detailDatasetIndex = new Date(lastReading.dateTime) >= thresholdDate ? 1 : 0;
+    const detailData = detailDatasetIndex === 1 ? recentReadings : olderReadings;
+    const filteredDetailData = detailData.filter(r => 
+      new Date(r.dateTime) >= detailViewRange.start && 
+      new Date(r.dateTime) <= detailViewRange.end
+    );
+    const detailDataIndex = filteredDetailData.findIndex(r => r.dateTime === lastReading.dateTime);
 
-  if (detailDataIndex !== -1 && detailChartData.datasets[detailDatasetIndex]) {
-    detailChartData.datasets[detailDatasetIndex].pointBackgroundColor = 
-      Array(filteredDetailData.length).fill(detailChartData.datasets[detailDatasetIndex].backgroundColor);
-    
-    if (detailChartData.datasets[detailDatasetIndex].pointBackgroundColor) {
-      detailChartData.datasets[detailDatasetIndex].pointBackgroundColor[detailDataIndex] = 'red';
-    }
-    
-    detailChartData.datasets[detailDatasetIndex].pointRadius = 
-      Array(filteredDetailData.length).fill(3);
-    
-    if (detailChartData.datasets[detailDatasetIndex].pointRadius) {
-      detailChartData.datasets[detailDatasetIndex].pointRadius[detailDataIndex] = 5;
+    if (detailDataIndex !== -1 && detailChartData.datasets[detailDatasetIndex]) {
+      detailChartData.datasets[detailDatasetIndex].pointBackgroundColor = 
+        Array(filteredDetailData.length).fill(detailChartData.datasets[detailDatasetIndex].backgroundColor);
+      
+      if (detailChartData.datasets[detailDatasetIndex].pointBackgroundColor) {
+        detailChartData.datasets[detailDatasetIndex].pointBackgroundColor[detailDataIndex] = 'red';
+      }
+      
+      detailChartData.datasets[detailDatasetIndex].pointRadius = 
+        Array(filteredDetailData.length).fill(3);
+      
+      if (detailChartData.datasets[detailDatasetIndex].pointRadius) {
+        detailChartData.datasets[detailDatasetIndex].pointRadius[detailDataIndex] = 5;
+      }
     }
   }
-  }
+
   // Helper function to get abbreviated unit name
   const getAbbreviatedUnit = (fullUnitName) => {
     if (fullUnitName.includes('Above Station Datum')) return 'mASD';
@@ -520,22 +546,22 @@ const ReadingsChart = ({ stationId }) => {
             borderDash: [5, 5],
             label: {
               content: 'Midnight',
-              enabled: true,
+              enabled: selectedRange === '24h',
               position: 'top'
             }
           },
-          twentyFourHourMark: {
+          thresholdLine: {
             type: 'line',
             xMin: thresholdDate,
             xMax: thresholdDate,
-            borderColor: 'rgba(255, 0, 0, 0.3)',
+            borderColor: 'rgba(255, 0, 0, 0.7)', // Make it more visible
             borderWidth: 2,
             borderDash: [5, 5],
             label: {
-              content: selectedRange === '48h' ? 'Last 24 Hours' : 
-                       selectedRange === 'week' ? '2 Days Ago' : 
-                       selectedRange === 'month' ? '7 Days Ago' : 'Threshold',
-              enabled: selectedRange !== '24h', // Only show when not in 24h view
+              content: selectedRange === '48h' ? 'Yesterday/Today' : 
+                       selectedRange === 'week' ? 'Last 6 Days/Today' : 
+                       selectedRange === 'month' ? 'Last 3 Weeks/Current Week' : 'Threshold',
+              enabled: selectedRange !== '24h', // Show for all views except 24h
               position: 'top'
             }
           }
@@ -600,7 +626,7 @@ const ReadingsChart = ({ stationId }) => {
           }
         }
       },
-      annotation: {
+      annotations: {
         annotations: {
           midnight: {
             type: 'line',
@@ -611,7 +637,22 @@ const ReadingsChart = ({ stationId }) => {
             borderDash: [5, 5],
             label: {
               content: 'Midnight',
-              enabled: true,
+              enabled: selectedRange === '24h', // Only show for 24h view
+              position: 'top'
+            }
+          },
+          thresholdLine: {
+            type: 'line',
+            xMin: thresholdDate,
+            xMax: thresholdDate,
+            borderColor: 'rgba(255, 0, 0, 0.7)', // Make it more visible
+            borderWidth: 2,
+            borderDash: [5, 5],
+            label: {
+              content: selectedRange === '48h' ? 'Yesterday/Today' : 
+                       selectedRange === 'week' ? 'Last 6 Days/Today' : 
+                       selectedRange === 'month' ? 'Last 3 Weeks/Current Week' : 'Threshold',
+              enabled: true, // Show for all applicable views
               position: 'top'
             }
           }
@@ -652,9 +693,10 @@ const ReadingsChart = ({ stationId }) => {
   });
 
   // Helper function to create a gradient for the boundary segment
+  // Add this function if it's not already defined
   const createGradient = (chart) => {
     const ctx = chart.ctx;
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400); // vertical gradient
+    const gradient = ctx.createLinearGradient(0, 0, 100, 0); // horizontal gradient
     
     // Start with the "older" color
     gradient.addColorStop(0, 'rgba(153, 204, 255, 0.8)');
@@ -675,12 +717,21 @@ const ReadingsChart = ({ stationId }) => {
       
       {/* Main chart section with clarified title */}
       <div className="chart-section">
-        <div className="chart-header">
+      <div className="chart-header">
         <h3>Detailed {selectedRange === '24h' ? '24-Hour' : chartTitle} View</h3>
-          <span className="date-subtitle">
-            From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
-          </span>
-        </div>
+        <span className="date-subtitle">
+          From {new Date(detailViewRange.start).toLocaleString()} to {new Date(detailViewRange.end).toLocaleString()}
+          {selectedRange !== '24h' && (
+            <span style={{ marginLeft: '10px', fontSize: '0.9em', color: '#666' }}>
+              (Red line marks division between {
+                selectedRange === '48h' ? 'yesterday and today' : 
+                selectedRange === 'week' ? 'last 6 days and today' : 
+                'last 3 weeks and current week'
+              })
+            </span>
+          )}
+        </span>
+      </div>
         
         <div
           ref={scrollContainerRef}
