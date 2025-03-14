@@ -105,6 +105,9 @@ If you see errors related to missing modules like `chartjs-plugin-annotation`, `
 npm install chartjs-plugin-annotation chartjs-adapter-date-fns react-datepicker
 ```
 
+#### Example Error Output:
+![Missing Module Errors](Images/errors.png)
+
 ### **Dependency Conflict Errors (React Versions)**
 
 If you encounter errors related to `react-leaflet-cluster` or `react-leaflet`, follow these steps:
