@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Realtime Flood Monitoring System is a web application that provides real-time flood monitoring using a backend API and a frontend interface. The project consists of a **backend (Flask API)** and a **frontend (React app)**.
+The **Realtime Flood Monitoring System** is a web application designed to visualize real-time flood data using a **Flask backend API** and a **React-based frontend**. It integrates with the **Real-Time Flood Monitoring API** provided by the UK Environmental Agency to fetch and display water level readings from different monitoring stations.
 
 ![User Interface](Images/UI.png)
 
@@ -99,37 +99,32 @@ By default, the frontend runs on [**http://localhost:3000/**](http://localhost:3
 
 ---
 
+## **Design Overview**
+
+The project consists of two main components:
+
+- **Backend (Flask API)**: Fetches and processes real-time flood data from an external API, serving it to the frontend.
+- **Frontend (React App)**: Displays monitoring stations on a map, visualizes water level trends, and allows users to select different time ranges for analysis.
+
+The frontend interacts with the backend via API requests, ensuring an efficient and dynamic user experience.
+
+---
+
 ## **Expected Output Screenshots**
 
-### **Monitoring Stations Overview**
+### **1. UI Overview**
+![UI Overview](Images/UI.png)
 
-![Monitoring Stations](Images/UI.png)
+### **2. Time Range Visualizations**
 
-The application allows users to select monitoring stations on a map to view real-time flood level readings.
-
-### **Water Level Readings (Last 24 Hours)**
-
-![Last 24 Hours](Images/Prestbury_last24h.png)
-
-This graph displays the detailed 24-hour water level trend for a selected station.
-
-### **Water Level Readings (Last 48 Hours)**
-
-![Last 48 Hours](Images/Prestbury_last48h.png)
-
-Shows the last 48-hour water level trend, highlighting variations over two days.
-
-### **Water Level Readings (Last 7 Days)**
-
-![Last 7 Days](Images/Prestbury_7days.png)
-
-The water level trend over the past 7 days, useful for identifying patterns and trends.
-
-### **Water Level Readings (Last Month)**
-
-![Last Month](Images/Prestbury_lastmonth.png)
-
-Displays the water level fluctuations over the past month.
+- **Last 24 Hours**
+  ![Last 24h](Images/Prestbury_last24h.png)
+- **Last 48 Hours**
+  ![Last 48h](Images/Prestbury_last48h.png)
+- **Last 7 Days**
+  ![Last 7 Days](Images/Prestbury_7days.png)
+- **Last Month**
+  ![Last Month](Images/Prestbury_lastmonth.png)
 
 ---
 
